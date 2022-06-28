@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ParameterDialog</class>
+ <widget class="QDialog" name="ParameterDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>508</width>
+    <height>262</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>497</width>
+     <height>248</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="1" colspan="2">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>Start Angle</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="3">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>Stop Angle</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="4" colspan="2">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>Spots Number</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QLabel" name="label_4">
+      <property name="text">
+       <string>Curtain I:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1" colspan="2">
+     <widget class="QLineEdit" name="curtain1StartAngleLineEdit"/>
+    </item>
+    <item row="1" column="3">
+     <widget class="QLineEdit" name="curtain1StopAngleLineEdit"/>
+    </item>
+    <item row="1" column="4" colspan="2">
+     <widget class="QLineEdit" name="curtain1SpotNbrLineEdit"/>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="label_5">
+      <property name="text">
+       <string>Curtain II:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1" colspan="2">
+     <widget class="QLineEdit" name="curtain2StartAngleLineEdit"/>
+    </item>
+    <item row="2" column="3">
+     <widget class="QLineEdit" name="curtain2StopAngleLineEdit"/>
+    </item>
+    <item row="2" column="4" colspan="2">
+     <widget class="QLineEdit" name="curtain2SpotNbrLineEdit"/>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="label_6">
+      <property name="text">
+       <string>Curtain III:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="1" colspan="2">
+     <widget class="QLineEdit" name="curtain3StartAngleLineEdit"/>
+    </item>
+    <item row="3" column="3">
+     <widget class="QLineEdit" name="curtain3StopAngleLineEdit"/>
+    </item>
+    <item row="3" column="4" colspan="2">
+     <widget class="QLineEdit" name="curtain3SpotNbrLineEdit"/>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="label_7">
+      <property name="text">
+       <string>Curtain IV:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1" colspan="2">
+     <widget class="QLineEdit" name="curtain4StartAngleLineEdit"/>
+    </item>
+    <item row="4" column="3">
+     <widget class="QLineEdit" name="curtain4StopAngleLineEdit"/>
+    </item>
+    <item row="4" column="4" colspan="2">
+     <widget class="QLineEdit" name="curtain4SpotNbrLineEdit"/>
+    </item>
+    <item row="5" column="0" colspan="2">
+     <widget class="QLabel" name="label_8">
+      <property name="text">
+       <string>CTN</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="2">
+     <widget class="QComboBox" name="CTNcomboBox"/>
+    </item>
+    <item row="5" column="3" colspan="2">
+     <widget class="QLabel" name="label_12">
+      <property name="text">
+       <string>HeartBeat Period</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="5">
+     <widget class="QLineEdit" name="heartBeatPeriodlineEdit"/>
+    </item>
+    <item row="6" column="0" colspan="2">
+     <widget class="QLabel" name="label_9">
+      <property name="text">
+       <string>MDI Format</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="2">
+     <widget class="QComboBox" name="MDIFormatcomboBox"/>
+    </item>
+    <item row="6" column="3" colspan="2">
+     <widget class="QLabel" name="label_13">
+      <property name="text">
+       <string>Facet in Frame</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="5">
+     <widget class="QComboBox" name="FacetcomboBox"/>
+    </item>
+    <item row="7" column="0" colspan="2">
+     <widget class="QLabel" name="label_10">
+      <property name="text">
+       <string>MDI Counter </string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="2">
+     <widget class="QComboBox" name="MDICountercomboBox"/>
+    </item>
+    <item row="7" column="3" colspan="2">
+     <widget class="QLabel" name="label_14">
+      <property name="text">
+       <string>Baud Rate</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="5">
+     <widget class="QComboBox" name="BaudRatecomboBox"/>
+    </item>
+    <item row="8" column="0" colspan="2">
+     <widget class="QLabel" name="label_11">
+      <property name="text">
+       <string>CAN Number</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="2">
+     <widget class="QComboBox" name="CANcomboBox"/>
+    </item>
+    <item row="8" column="3" colspan="3">
+     <widget class="QDialogButtonBox" name="buttonBox">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="standardButtons">
+       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>ParameterDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>ParameterDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

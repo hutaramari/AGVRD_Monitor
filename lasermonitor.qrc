@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Resources/3D_Scanner.png</file>
+        <file>Resources/Monitor.png</file>
+        <file>Resources/Smart-TV.png</file>
+        <file>Resources/System-Monitor.png</file>
+    </qresource>
+</RCC>

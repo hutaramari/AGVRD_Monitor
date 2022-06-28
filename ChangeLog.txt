@@ -1,0 +1,14 @@
+﻿AGV RD Monitor
+=========
+
+P1 (6 Jan 2021)
+-----------------
+
+Features:
+*** support spots view
+*** support only UDP to receive MDI packet
+*** support connection to device via TCP as client
+*** support only 80Hz and 40Hz scan frequency
+*** monitor number of total received frames
+*** monitor number of lost frames
+*** monitor device error log

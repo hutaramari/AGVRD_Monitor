@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/MainWindow">
+        <file>Resources/Monitor.png</file>
+        <file>Resources/ClosePane.svg</file>
+        <file>Resources/OpenPane.svg</file>
+        <file>Resources/uScan.ico</file>
+    </qresource>
+</RCC>
