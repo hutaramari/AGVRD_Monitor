@@ -83,3 +83,9 @@ void ChartView::wheelEvent(QWheelEvent *event)
 }
 //![1]
 
+void ChartView::mouseMoveEvent(QMouseEvent *event)
+{
+    mousePos = this->chart()->mapToValue(event->pos());
+    QChartView::mouseMoveEvent(event);
+    //emit signalMousePos(mousePos);
+}

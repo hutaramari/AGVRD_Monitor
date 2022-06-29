@@ -24,6 +24,7 @@ TcpClient::TcpClient()
     });
 
     b_hasDataSend = false;
+    b_close = false;
 }
 
 TcpClient::~TcpClient()
@@ -48,9 +49,12 @@ void TcpClient::onConnect()
 
 void TcpClient::onDisconnect()
 {
-    b_isConnectState = false;
-    qDebug()<<"onDisconnect";
-    m_timerConnect->start(1000);
+    if(!b_close)
+    {
+        b_isConnectState = false;
+        qDebug()<<"onDisconnect";
+        m_timerConnect->start(1000);
+    }
 }
 
 void TcpClient::onErrorString(QAbstractSocket::SocketError errorString)
@@ -69,9 +73,11 @@ void TcpClient::onRecvData()
     }
     while(m_TcpSocket->bytesAvailable() > 0)
     {
-        QByteArray arrayData;
-        arrayData.resize(static_cast<int>(m_TcpSocket->bytesAvailable()));
-        m_TcpSocket->read(arrayData.data(), arrayData.size());
+        m_readDataBuf.resize(static_cast<int>(m_TcpSocket->bytesAvailable()));
+        m_TcpSocket->read(m_readDataBuf.data(), m_readDataBuf.size());
+        //QString str_tcp_recv = QString::fromLocal8Bit((m_readDataBuf));
+        //qDebug() << str_tcp_recv;
+        emit signalReadData();
     }
 }
 
@@ -90,6 +96,21 @@ void TcpClient::write(quint8 buf[], quint16 size)
         m_TcpSocket->disconnectFromHost();
         m_TcpSocket->waitForDisconnected(3000);
     }
+}
+
+int TcpClient::read(QByteArray &bufferIn)
+{
+    memcpy(bufferIn.data(), m_readDataBuf.data(), m_readDataBuf.size());
+
+    return m_readDataBuf.size();
+}
+
+void TcpClient::close()
+{
+    b_close = true;
+    qDebug()<<"Closed.";
+    m_timerConnect->stop();
+    m_TcpSocket->close();
 }
 
 #if 0

@@ -209,7 +209,8 @@ void DeviceHost::setNetHost(NetDevice *device, Protocol *protocol)
     this->netDevice = device;
     this->protocol = protocol;
 
-    connect(this->netDevice, &NetDevice::dataRead, this, &DeviceHost::readNetDeviceSlot);
+    //connect(this->netDevice, &NetDevice::dataRead, this, &DeviceHost::readNetDeviceSlot);
+    connect(this->netDevice->tcpclient, &TcpClient::signalReadData, this, &DeviceHost::readNetDeviceSlot);
     connect(this->netDevice->udpclient, &udpClient::signalNewFrame, this, &DeviceHost::readNetDeviceMdiSlot);
     this->netDevice->udpclient->setProtocol(protocol);
     deviceUsed = DeviceType::NetPortDevice;
@@ -219,7 +220,8 @@ void DeviceHost::closeNetHost()
 {
     if(this->netDevice != nullptr)
     {
-        disconnect(this->netDevice, &NetDevice::dataRead, this, &DeviceHost::readNetDeviceSlot);
+        //disconnect(this->netDevice, &NetDevice::dataRead, this, &DeviceHost::readNetDeviceSlot);
+        disconnect(this->netDevice->tcpclient, &TcpClient::signalReadData, this, &DeviceHost::readNetDeviceSlot);
         disconnect(this->netDevice->udpclient, &udpClient::signalNewFrame, this, &DeviceHost::readNetDeviceMdiSlot);
 
         this->netDevice->closeClient();

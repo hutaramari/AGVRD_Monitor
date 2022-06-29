@@ -32,6 +32,7 @@
 
 #include <QtCharts/QChartView>
 #include <QtCharts/QPolarChart>
+#include <QPointF>
 
 QT_CHARTS_USE_NAMESPACE
 
@@ -40,9 +41,14 @@ class ChartView : public QChartView
 public:
     ChartView(QWidget *parent = 0);
 
+    QPointF mousePos;
+signals:
+    //void signalMousePos(QPointF &pos);
+
 protected:
     void keyPressEvent(QKeyEvent *event);
     void wheelEvent(QWheelEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
 
 private:
     void switchChartType();

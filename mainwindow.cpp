@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     chart = new QChart();
 
     seriesFacet1 = new QLineSeries();//new QSplineSeries();
+    connect(seriesFacet1, &QLineSeries::clicked, this, &MainWindow::updateXY);
 
     seriesBackGround1 = new QSplineSeries();
     seriesBackGround2 = new QLineSeries();
@@ -325,8 +326,8 @@ void MainWindow::on_actionClose_triggered()
     ui->lostFrameLabel->setText("0");
     ui->receiveStatusLabel->setText(" ");
     ui->receiveStatusLabel->setStyleSheet("color:black");
-    ui->timeOutLabel->setText(" ");
-    ui->ntcLabel->setText(" ");
+    ui->timeOutLabel->setText("0");
+    ui->ntcLabel->setText("0");
 
     periodTimer->stop();
 }
@@ -621,4 +622,13 @@ void MainWindow::updateTemperatureSlot(void)
     {
         ui->ntcLabel->setStyleSheet("color:green");
     }
+}
+
+void MainWindow::updateXY(void)
+{
+    QString str;
+    str = QString().sprintf("%.3f, %.3f", chartView->mousePos.x(), chartView->mousePos.y());
+    posLabel.setText( str );
+    ui->statusBar->addPermanentWidget(&posLabel);
+    qDebug()<<"the x and y is "<< chartView->mousePos;
 }

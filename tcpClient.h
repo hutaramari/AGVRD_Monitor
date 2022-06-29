@@ -9,20 +9,24 @@
 #include <QByteArray>
 #include <QTimer>
 
-class TcpClient : QObject
+class TcpClient : public QObject
 {
     Q_OBJECT
 
 public:
-    TcpClient();
+    explicit TcpClient();
     ~TcpClient();
 
     void startConnect(const QString& strAddressIP, quint16 iPort);
 
     void write(quint8 *addr, quint16 size);
+    int read(QByteArray &bufferIn);
+    void close(void);
+
+    QTcpSocket *m_TcpSocket;
 
 signals:
-    //void sigGotReadData();
+    void signalReadData();
 
 public slots:
     void onConnect();
@@ -33,12 +37,12 @@ public slots:
     //void onSendData();
 
 private:
-    QTcpSocket *m_TcpSocket;
     QHostAddress m_hostaddressIP;
     QString m_strAddressIP;
     quint16 m_iPort;
     bool b_isConnectState;
     bool b_hasDataSend;
+    bool b_close;
 
     QTimer *m_timerConnect;
 

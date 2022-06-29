@@ -29,10 +29,6 @@ public:
 signals:
     void dataRead(void);
 
-public slots:
-    //void connected();
-    //void disconnected();
-
 private:
     QHostAddress * _ipAddress;
     quint16 _port;

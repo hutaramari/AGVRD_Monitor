@@ -97,6 +97,7 @@ private slots:
     void receiveWmsSlot(quint16 *buf_, quint16 size_);
 
     void updateTemperatureSlot(void);
+    void updateXY();
 
 private:
     Ui::MainWindow *ui;
@@ -131,6 +132,7 @@ private:
     qreal tempx, tempy;
 
     QLabel statusLabel;
+    QLabel posLabel;
     quint64 totalFrame;
     quint64 lostFrame;
     quint16 lastFrame;

@@ -1,5 +1,4 @@
 #include "netdevice.h"
-#include "udpClient.h"
 
 NetDevice::NetDevice(QObject *parent) : QObject(parent)
 {
@@ -23,9 +22,12 @@ bool NetDevice::setClient(QString address,QString port)
 
 qint32 NetDevice::readDevice(QByteArray &bufferIn)
 {
+    qint32 size;
     //tcpclient->getReadData(&bufferIn);
+    tcpclient->read(bufferIn);
+    size = static_cast<qint32>(bufferIn.size());
 
-    return bufferIn.size();
+    return size;
 }
 
 qint32 NetDevice::writeDevice(quint8 *msgBuffer, quint16 msgSize)
@@ -42,7 +44,8 @@ void NetDevice::closeClient()
     //    tcpclient->quit();
     //    tcpclient->disableReconn();
     //}
-
+    tcpclient->close();
+    tcpclient=nullptr;
 
     if(udpclient->isRunning())
     {

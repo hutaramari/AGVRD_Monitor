@@ -399,7 +399,7 @@
      <enum>QFrame::Raised</enum>
     </property>
     <property name="text">
-     <string>Temperature</string>
+     <string>RPU Junc Temp</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
