@@ -72,8 +72,6 @@ void TcpClient::onRecvData()
         QByteArray arrayData;
         arrayData.resize(static_cast<int>(m_TcpSocket->bytesAvailable()));
         m_TcpSocket->read(arrayData.data(), arrayData.size());
-        QString str_tcp_recv = QString::fromLocal8Bit((arrayData));
-        qDebug() << str_tcp_recv;
     }
 }
 
