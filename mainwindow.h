@@ -97,7 +97,9 @@ private slots:
     void receiveWmsSlot(quint16 *buf_, quint16 size_);
 
     void updateTemperatureSlot(void);
-    void updateXY();
+
+protected:
+    void mousePressEvent(QMouseEvent *event);
 
 private:
     Ui::MainWindow *ui;

@@ -35,7 +35,6 @@ MainWindow::MainWindow(QWidget *parent) :
     chart = new QChart();
 
     seriesFacet1 = new QLineSeries();//new QSplineSeries();
-    connect(seriesFacet1, &QLineSeries::clicked, this, &MainWindow::updateXY);
 
     seriesBackGround1 = new QSplineSeries();
     seriesBackGround2 = new QLineSeries();
@@ -220,7 +219,7 @@ void MainWindow::on_actionOpen_triggered()
                     ui->actionWms->setEnabled(true);
 
                     statusLabel.setText(netIPAddress + ":" + netPort);
-                    ui->statusBar->addPermanentWidget(&statusLabel);
+                    ui->statusBar->addPermanentWidget(&statusLabel, 10);
 
                     periodTimer->start();
                 }
@@ -624,11 +623,13 @@ void MainWindow::updateTemperatureSlot(void)
     }
 }
 
-void MainWindow::updateXY(void)
+void MainWindow::mousePressEvent(QMouseEvent *event)
 {
     QString str;
     str = QString().sprintf("%.3f, %.3f", chartView->mousePos.x(), chartView->mousePos.y());
     posLabel.setText( str );
-    ui->statusBar->addPermanentWidget(&posLabel);
+    ui->statusBar->addPermanentWidget(&posLabel, 10);
     qDebug()<<"the x and y is "<< chartView->mousePos;
+    QWidget::mousePressEvent(event);
+
 }
