@@ -23,8 +23,11 @@ bool NetDevice::setClient(QString address,QString port)
 qint32 NetDevice::readDevice(QByteArray &bufferIn)
 {
     qint32 size;
+    QByteArray data;
     //tcpclient->getReadData(&bufferIn);
-    tcpclient->read(bufferIn);
+    //tcpclient->read(bufferIn);
+    data = tcpclient->read();
+    bufferIn.append(data);
     size = static_cast<qint32>(bufferIn.size());
 
     return size;

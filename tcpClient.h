@@ -19,8 +19,9 @@ public:
 
     void startConnect(const QString& strAddressIP, quint16 iPort);
 
-    void write(quint8 *addr, quint16 size);
+    void write(quint8 *msgBuffer, quint16 size);
     int read(QByteArray &bufferIn);
+    QByteArray read(void);
     void close(void);
 
     QTcpSocket *m_TcpSocket;

@@ -81,16 +81,12 @@ void TcpClient::onRecvData()
     }
 }
 
-void TcpClient::write(quint8 buf[], quint16 size)
+void TcpClient::write(quint8 *msgBuffer, quint16 size)
 {
     if(m_TcpSocket->state() != QAbstractSocket::ConnectedState)
         return;
 
-    for (int i = 0; i < size; ++i) {
-        m_sendDatabuf.append(static_cast<char>(buf[i]));
-    }
-
-    qint64 iSendLen = m_TcpSocket->write(m_sendDatabuf, size);
+    qint64 iSendLen = m_TcpSocket->write(reinterpret_cast<char*>(msgBuffer), size);
     if(!m_TcpSocket->flush() || iSendLen < 0)
     {
         m_TcpSocket->disconnectFromHost();
@@ -103,6 +99,10 @@ int TcpClient::read(QByteArray &bufferIn)
     memcpy(bufferIn.data(), m_readDataBuf.data(), m_readDataBuf.size());
 
     return m_readDataBuf.size();
+}
+QByteArray TcpClient::read(void)
+{
+    return m_readDataBuf;
 }
 
 void TcpClient::close()
