@@ -98,6 +98,8 @@ private slots:
 
     void updateTemperatureSlot(void);
 
+    void on_actionReverse_triggered(bool checked);
+
 protected:
     void mousePressEvent(QMouseEvent *event);
 
@@ -232,6 +234,12 @@ private:
     QVector< QVector<quint16> > Testresult_sector;
     QVector< QVector<quint16> > Testresult_mask;
 #endif
+    quint8 reverse_b;
+    QList<QPointF> tempLine1, tempLineR1;
+    QList<QPointF> tempLine2, tempLineR2;
+    QList<QPointF> tempLine3, tempLineR3;
+
+    void updateBackground(bool dir_);
 };
 
 #endif // MAINWINDOW_H

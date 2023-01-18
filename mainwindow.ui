@@ -463,6 +463,7 @@
      <string>Config</string>
     </property>
     <addaction name="actionParameter"/>
+    <addaction name="actionReverse"/>
    </widget>
    <addaction name="menuDevice"/>
    <addaction name="menuAction"/>
@@ -514,6 +515,9 @@
    </property>
   </action>
   <action name="actionParameter">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -534,6 +538,14 @@
   <action name="actionWms">
    <property name="text">
     <string>WMS</string>
+   </property>
+  </action>
+  <action name="actionReverse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Reverse</string>
    </property>
   </action>
  </widget>

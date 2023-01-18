@@ -40,25 +40,39 @@ MainWindow::MainWindow(QWidget *parent) :
     seriesBackGround2 = new QLineSeries();
     seriesBackGround3 = new QLineSeries();
 
-    //bg1
-    for(double j=-47.6; j<227.6; j+=0.2)
+    //bg1 -- curve
+    for(int i = 0; i < 1377; i++)
     {
-        tempx = 10*qCos(qDegreesToRadians(j));
-        tempy = 10*qSin(qDegreesToRadians(j));
-        seriesBackGround1->append(tempx, tempy);
+        double angle = -47.6 + 0.2 * i;
+        tempx = 10*qCos(qDegreesToRadians(angle));
+        tempy = 10*qSin(qDegreesToRadians(angle));
+        tempLine1.append(QPointF(tempx, tempy));
+        tempLineR1.append(QPointF(-tempx, -tempy));
     }
+    seriesBackGround1->append(tempLine1);
     seriesBackGround1->setColor(QColor(133,188,195));
     chart->addSeries(seriesBackGround1);
 
-    //bg2
-    seriesBackGround2->append(0.0,0.0);
-    seriesBackGround2->append(10*qCos(qDegreesToRadians(-47.6)),10*qSin(qDegreesToRadians(-47.6)));
+    //bg2 -- border1
+    tempx = 10*qCos(qDegreesToRadians(-47.6));
+    tempy = 10*qSin(qDegreesToRadians(-47.6));
+    tempLine2.append(QPointF(0.0, 0.0));
+    tempLineR2.append(QPointF(0.0, 0.0));
+    tempLine2.append(QPointF(tempx, tempy));
+    tempLineR2.append(QPointF(-tempx, -tempy));
+    seriesBackGround2->append(tempLine2);
     seriesBackGround2->setColor(QColor(133,188,195));
     chart->addSeries(seriesBackGround2);
 
-    //bg3
-    seriesBackGround3->append(0.0,0.0);
-    seriesBackGround3->append(10*qCos(qDegreesToRadians(227.6)),10*qSin(qDegreesToRadians(227.6)));
+
+    //bg3 -- border2
+    tempx = 10*qCos(qDegreesToRadians(227.6));
+    tempy = 10*qSin(qDegreesToRadians(227.6));
+    tempLine3.append(QPointF(0.0, 0.0));
+    tempLineR3.append(QPointF(0.0, 0.0));
+    tempLine3.append(QPointF(tempx, tempy));
+    tempLineR3.append(QPointF(-tempx, -tempy));
+    seriesBackGround3->append(tempLine3);
     seriesBackGround3->setColor(QColor(133,188,195));
     chart->addSeries(seriesBackGround3);
 
@@ -130,6 +144,7 @@ MainWindow::MainWindow(QWidget *parent) :
     sliderVal = 0;
     wmsStart = 0;
     alg = new Alg;
+    reverse_b = false;
 }
 
 
@@ -264,6 +279,7 @@ void MainWindow::updateUI()
         spotsCloud1->clear();
         spotsCloud1->resize(spotsnum_w); // +2 for start and last render point
     }
+
     // For AGV RD sensor
     if(spotsnum_w > 0)
     {
@@ -273,12 +289,16 @@ void MainWindow::updateUI()
             radius = deviceHost->MDIFrame_s.distance_wa[i] / 1000.0; // Should be 1000.0(DEBUG: because the simulator output data < 200)
             // 1) normal = 1000.0
             // 2) output data < 200, then 10.0
-            angle = (deviceHost->MDIFrame_s.frame_s.startAngle_sw + \
-                    deviceHost->MDIFrame_s.frame_s.deltaAngle_sw / 10 * i) / 100.0;
-
+            angle = (deviceHost->MDIFrame_s.frame_s.startAngle_sw + deviceHost->MDIFrame_s.frame_s.deltaAngle_sw * i / 10) * 1.0 / 100.0;
             pointx = qCos(qDegreesToRadians(angle)) * radius;
             pointy = qSin(qDegreesToRadians(angle)) * radius;
-            spotsCloud1->operator[](i) = QPointF(pointx, pointy);
+            if(reverse_b)
+            {
+                spotsCloud1->operator[](i) = QPointF(-pointx, -pointy);
+            }
+            else {
+                spotsCloud1->operator[](i) = QPointF(pointx, pointy);
+            }
         }
         seriesFacet1->replace(*spotsCloud1);
 
@@ -631,5 +651,31 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     ui->statusBar->addPermanentWidget(&posLabel, 10);
     qDebug()<<"the x and y is "<< chartView->mousePos;
     QWidget::mousePressEvent(event);
+}
 
+void MainWindow::on_actionReverse_triggered(bool checked)
+{
+    if(checked)
+    {
+        reverse_b = true;
+    }
+    else {
+        reverse_b = false;
+    }
+    this->updateBackground(checked);
+}
+
+void MainWindow::updateBackground(bool dir_)
+{
+    if(dir_)
+    {
+        seriesBackGround1->replace(tempLineR1);
+        seriesBackGround2->replace(tempLineR2);
+        seriesBackGround3->replace(tempLineR3);
+    }
+    else {
+        seriesBackGround1->replace(tempLine1);
+        seriesBackGround2->replace(tempLine2);
+        seriesBackGround3->replace(tempLine3);
+    }
 }
