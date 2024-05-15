@@ -1,6 +1,6 @@
 #include <windows.h>
 
-IDI_ICON1	ICON	DISCARDABLE	"D:\\xukang\\012_Tool\\LZR_Monitor\\Resources\\agv.ico"
+IDI_ICON1	ICON	DISCARDABLE	"C:\\BEA\\01_Work\\012_Tool\\AGV_RD_Monitor\\Resources\\agv.ico"
 
 VS_VERSION_INFO VERSIONINFO
 	FILEVERSION 0,0,0,0

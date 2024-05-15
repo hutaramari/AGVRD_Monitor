@@ -30,10 +30,7 @@ signals:
     void dataRead(void);
 
 private:
-    QHostAddress * _ipAddress;
     quint16 _port;
-    //QTcpSocket *_clientSocket;
-    QByteArray *_dataBuffer;
 
     void transmitDataReady(void);
 };

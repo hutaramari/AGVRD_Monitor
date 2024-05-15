@@ -8,8 +8,6 @@ DeviceHost::DeviceHost(QObject *parent) : QObject(parent)
     totalFrame = 0;
     lostFrame = 0;
 
-    // NOTE: If you changed item's order of cmdList,
-    // please modify the index of process in dispatchMessage().
     cmdList
         <<QStringLiteral("cWA SendMDI") // 0
         <<QStringLiteral("cWA StopMDI") // 1
@@ -68,86 +66,6 @@ void DeviceHost::readSerialPortSlot(void)
     */
 
     this->serialDevice->readDevice(_bufferInArray);
-
-    while( (_msgSize = this->protocol->decode(_bufferInArray, _msgBuffer)) > 0)
-    {
-        dispatchMessage(_msgBuffer);
-    }
-}
-
-void DeviceHost::dispatchMessage(quint8 msgBuffer[])
-{
-    /* dispatch message from serial port */
-}
-
-/*
- * Dispatch reponse from AGV sensor
-*/
-void DeviceHost::dispatchMessage(quint8 *msgBuffer, quint32 bufSize, quint8 agvMode)
-{
-    QString strCmd;
-    QByteArray cmd;
-    qint16 pos = -1;
-
-    if(agvMode == AGV_MODE_CMD)
-    {
-        // Transfer data to string
-        for (quint32 i = 0; i < bufSize; i++)
-        {
-            cmd.append(static_cast<char>(msgBuffer[i]));
-        }
-        strCmd = QString::fromUtf8(cmd);
-
-        // Find command postion
-        for(quint16 i = 0; i < cmdList.size(); i++)
-        {
-            if(strCmd.contains(cmdList.at(i)))
-            {
-                pos = static_cast<qint16>(i);
-                break; // found and exit
-            }
-        }
-        if(pos >= 0)
-        {
-            switch (pos)
-            {
-            case 0: // (!!!Follow the order of cmdList)
-                qDebug()<<"Started receiving MDI";
-                break;
-            case 1:
-                qDebug()<<"Stoped receiving MDI";
-                break;
-            case 18:
-                if(bufSize == 13)
-                {
-                    quint16 tmp= msgBuffer[11] * 256 + msgBuffer[12];
-                    temperature = static_cast<qint16>(tmp);
-                    emit temperatureSignal();
-                }
-                break;
-            case 20:
-                qDebug()<<"WMS data received: "<<bufSize;
-                if(bufSize == (WMS_DATA_SIZE*2 + 11))
-                {
-                    for(int i = 0; i < WMS_DATA_SIZE; i++)
-                    {
-                        wmsData[i] = msgBuffer[11+2*i]*256 + msgBuffer[11+2*i+1];
-                    }
-                    emit newWmsSignal(wmsData, WMS_DATA_SIZE);
-                }
-                break;
-            default:
-                break;
-            }
-
-            parameterUpdated = true;
-//            emit newParameter();
-        }
-        else
-        {
-            qDebug()<<"Not find the command.";
-        }
-    }
 }
 
 void DeviceHost::readParameter(void)
@@ -209,9 +127,10 @@ void DeviceHost::setNetHost(NetDevice *device, Protocol *protocol)
     this->netDevice = device;
     this->protocol = protocol;
 
-    //connect(this->netDevice, &NetDevice::dataRead, this, &DeviceHost::readNetDeviceSlot);
-    connect(this->netDevice->tcpclient, &TcpClient::signalReadData, this, &DeviceHost::readNetDeviceSlot);
-    connect(this->netDevice->udpclient, &udpClient::signalNewFrame, this, &DeviceHost::readNetDeviceMdiSlot);
+    connect(this->netDevice->tcpclient, &TcpClient::sigReadMdiData, this, &DeviceHost::readTcpMdiSlot);
+    connect(this->netDevice->udpclient, &udpClient::signalNewFrame, this, &DeviceHost::readUdpMdiSlot);
+    connect(this->netDevice->tcpclient, &TcpClient::sigReadCmdData, this, &DeviceHost::readTcpCmdSlot);
+    this->netDevice->tcpclient->setProtocol(protocol);
     this->netDevice->udpclient->setProtocol(protocol);
     deviceUsed = DeviceType::NetPortDevice;
 }
@@ -220,35 +139,55 @@ void DeviceHost::closeNetHost()
 {
     if(this->netDevice != nullptr)
     {
-        //disconnect(this->netDevice, &NetDevice::dataRead, this, &DeviceHost::readNetDeviceSlot);
-        disconnect(this->netDevice->tcpclient, &TcpClient::signalReadData, this, &DeviceHost::readNetDeviceSlot);
-        disconnect(this->netDevice->udpclient, &udpClient::signalNewFrame, this, &DeviceHost::readNetDeviceMdiSlot);
-
+        //disconnect(this->netDevice, &NetDevice::dataRead, this, &DeviceHost::readTcpMdiSlot);
+        disconnect(this->netDevice->tcpclient, &TcpClient::sigReadMdiData, this, &DeviceHost::readTcpMdiSlot);
+        disconnect(this->netDevice->udpclient, &udpClient::signalNewFrame, this, &DeviceHost::readUdpMdiSlot);
+        disconnect(this->netDevice->tcpclient, &TcpClient::sigReadCmdData, this, &DeviceHost::readTcpCmdSlot);
         this->netDevice->closeClient();
         this->netDevice = nullptr;
     }
 }
 
 /*
- * Read and decode CMD frame from AGV sensor
+ * Read and decode MDI frame from AGV sensor
 */
-void DeviceHost::readNetDeviceSlot(void)
+void DeviceHost::readTcpMdiSlot(void)
 {
-    this->netDevice->readDevice(_bufferInArray);
-
-    while( (_msgSize = this->protocol->decode(_bufferInArray, _msgBuffer, AGV_MODE_CMD)) > 0)
-    {
-        dispatchMessage(_msgBuffer, _msgSize, AGV_MODE_CMD);
-    }
+    memcpy(&MDIFrame_s.header_s.pktType_b, &this->netDevice->tcpclient->tcpMdiFrame_s.header_s.pktType_b, sizeof (MDI_Frame_t));
+    totalFrame = this->netDevice->tcpclient->totalFrame;
+    lostFrame = this->netDevice->tcpclient->lostFrame;
+    emit newMdiFrame();
 }
 
-void DeviceHost::readNetDeviceMdiSlot(void)
+void DeviceHost::readUdpMdiSlot(void)
 {
-    memcpy(&MDIFrame_s.header_s.pktType_b, &this->netDevice->udpclient->mdiFrame_s.header_s.pktType_b, sizeof (MDI_Frame_t));
+    memcpy(&MDIFrame_s.header_s.pktType_b, &this->netDevice->udpclient->udpMdiFrame_s.header_s.pktType_b, sizeof (MDI_Frame_t));
     totalFrame = this->netDevice->udpclient->totalFrame;
     lostFrame = this->netDevice->udpclient->lostFrame;
-    lastFrame = this->netDevice->udpclient->lastFrame;
-    emit newFrame();
+    emit newMdiFrame();
+}
+
+void DeviceHost::readTcpCmdSlot(void)
+{
+    QString cmd="";
+    quint32 len;
+
+    len = this->netDevice->tcpclient->tcpCmdLength_dw;
+    if(len > sizeof(_msgBuffer))
+    {
+        len = sizeof(_msgBuffer);
+    }
+    memcpy(_msgBuffer, &this->netDevice->tcpclient->tcpCmdFrame_ba, len);
+
+    for (quint32 i = 0;i < len; i++) {
+        cmd.append(_msgBuffer[i]);
+    }
+
+    if(cmd.contains(cmdList[18]))
+    {
+        temperature = _msgBuffer[len - 2] * 256 + _msgBuffer[len - 1];
+        emit temperatureSignal();
+    }
 }
 
 void DeviceHost::stopDevice()

@@ -18,8 +18,8 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>1010</width>
-    <height>580</height>
+    <width>16777215</width>
+    <height>16777215</height>
    </size>
   </property>
   <property name="mouseTracking">
@@ -203,36 +203,6 @@
     </property>
     <property name="text">
      <string>0</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>800</x>
-      <y>370</y>
-      <width>200</width>
-      <height>30</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(218, 238, 255);</string>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::Panel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
-    </property>
-    <property name="text">
-     <string>Error Log</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
@@ -431,7 +401,7 @@
      <x>0</x>
      <y>0</y>
      <width>1010</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuDevice">
@@ -464,6 +434,7 @@
     </property>
     <addaction name="actionParameter"/>
     <addaction name="actionReverse"/>
+    <addaction name="actionLeuze_mode"/>
    </widget>
    <addaction name="menuDevice"/>
    <addaction name="menuAction"/>
@@ -546,6 +517,14 @@
    </property>
    <property name="text">
     <string>Reverse</string>
+   </property>
+  </action>
+  <action name="actionLeuze_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Leuze mode</string>
    </property>
   </action>
  </widget>

@@ -139,7 +139,6 @@ private:
     QLabel posLabel;
     quint64 totalFrame;
     quint64 lostFrame;
-    quint16 lastFrame;
     quint16 maxSpotsNbr;
     quint64 timeOutCounter;
 

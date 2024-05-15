@@ -10,55 +10,55 @@ udpClient::udpClient(quint16 p, QObject *parent) : QThread (parent)
     lostFrame = 0;
     lastFrame = 0;
     isFirstTime_b = true;
-    startLoop = true;
+    udpStartLoop = true;
+    udpSocket = new QUdpSocket();
+    datagram.clear();
 }
 
 udpClient::~udpClient()
 {
-    if(mdiSocket != nullptr)
+    if(udpSocket != nullptr)
     {
-        mdiSocket->close();
-        mdiSocket = nullptr;
+        udpSocket->close();
+        udpSocket = nullptr;
     }
 }
 void udpClient::closeClient()
 {
-//    if(mdiSocket->hasPendingDatagrams())
+//    if(udpSocket->hasPendingDatagrams())
 //    {
-//        mdiSocket->receiveDatagram();
+//        udpSocket->receiveDatagram();
 //    }
-//    mdiSocket->close();
-    startLoop = false;
+//    udpSocket->close();
+    udpStartLoop = false;
 
 }
 void udpClient::run()
 {
     qint64 ret;
     bool result;
-    mdiSocket = new QUdpSocket();
-    result = mdiSocket->bind(QHostAddress::Any, port, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
-//    result = mdiSocket->bind(QHostAddress::Any, port, QUdpSocket::ShareAddress);
-    qDebug()<<"udpClient::run";
+    //udpSocket = new QUdpSocket();
+    result = udpSocket->bind(QHostAddress::Any, port, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+//    result = udpSocket->bind(QHostAddress::Any, port, QUdpSocket::ShareAddress);
+    qDebug()<<"\nudpClient::run\n";
 
-#if 1
     while(!result)
     {
         qDebug()<<"NG at "<<port;
         QThread::msleep(100);
-        result = mdiSocket->bind(QHostAddress::Any, port, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+        result = udpSocket->bind(QHostAddress::Any, port, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
     }
-#endif
 
-    while(startLoop)
+    while(udpStartLoop)
     {
-        if(mdiSocket->hasPendingDatagrams())
+        if(udpSocket->hasPendingDatagrams())
         {
-            datagram.resize(mdiSocket->pendingDatagramSize());
+            datagram.resize(static_cast<int>(udpSocket->pendingDatagramSize()));
             QHostAddress sender;
             quint16 senderPort;
 
-            ret = mdiSocket->readDatagram(datagram.data(), datagram.size(),&sender, &senderPort);
-            if(ret>0)
+            ret = udpSocket->readDatagram(datagram.data(), datagram.size(),&sender, &senderPort);
+            if(ret > 0)
             {
                 if((_msgSize = this->protocol->decode(datagram, _msgBuffer, AGV_MODE_MDI)) > 0)
                 {
@@ -72,7 +72,7 @@ void udpClient::run()
         }
     }
 
-    mdiSocket->close();
+    udpSocket->close();
 }
 
 qint32 udpClient::readMdi(QByteArray &bufferIn)
@@ -92,76 +92,86 @@ void udpClient::dispatchMessage(quint8 *msgBuffer, quint32 bufSize)
 {
     quint16 offset;
     quint16 idx;
-    quint16 tmp;
+    quint32 tmp;
     quint8  newRotation_b = 0;
     static quint8 packetIndex_b = 0;
 
-    if(bufSize > 27)
+    if(bufSize > PROTOCOL_BEA_MDIHEADERSIZE)
     {
         offset = 0;
-        //TODO: complete mdiFrame_s
-        mdiFrame_s.header_s.pktType_b = msgBuffer[offset++];
-        mdiFrame_s.header_s.pktSize_w = msgBuffer[offset++] * 256;
-        mdiFrame_s.header_s.pktSize_w += msgBuffer[offset++];
+        udpMdiFrame_s.header_s.pktType_b = msgBuffer[offset++];
+        udpMdiFrame_s.header_s.pktSize_w = msgBuffer[offset++] * 256;
+        udpMdiFrame_s.header_s.pktSize_w += msgBuffer[offset++];
         offset += 6;
-        mdiFrame_s.header_s.pktNbr_w = msgBuffer[offset++] * 256;
-        mdiFrame_s.header_s.pktNbr_w += msgBuffer[offset++];
-        mdiFrame_s.header_s.totalNbr_b = msgBuffer[offset++];
-        mdiFrame_s.header_s.subNbr_b = msgBuffer[offset++];
-        mdiFrame_s.header_s.scanFreq_w = msgBuffer[offset++] * 256;
-        mdiFrame_s.header_s.scanFreq_w += msgBuffer[offset++];
-        mdiFrame_s.header_s.scanSpotsNbr_w = msgBuffer[offset++] * 256;
-        mdiFrame_s.header_s.scanSpotsNbr_w += msgBuffer[offset++];
-        tmp = msgBuffer[offset++] * 256;
+        udpMdiFrame_s.header_s.pktNbr_w = msgBuffer[offset++] * 256;
+        udpMdiFrame_s.header_s.pktNbr_w += msgBuffer[offset++];
+        udpMdiFrame_s.header_s.totalNbr_b = msgBuffer[offset++];
+        udpMdiFrame_s.header_s.subNbr_b = msgBuffer[offset++];
+        udpMdiFrame_s.header_s.scanFreq_w = msgBuffer[offset++] * 256;
+        udpMdiFrame_s.header_s.scanFreq_w += msgBuffer[offset++];
+        udpMdiFrame_s.header_s.scanSpotsNbr_w = msgBuffer[offset++] * 256;
+        udpMdiFrame_s.header_s.scanSpotsNbr_w += msgBuffer[offset++];
+        // tmp = msgBuffer[offset++] * 256;
+        // tmp += msgBuffer[offset++];
+        // udpMdiFrame_s.header_s.firstAngle_sw = static_cast<qint16>(tmp);
+        tmp  = msgBuffer[offset++] * 256 * 256 * 256;
+        tmp += msgBuffer[offset++] * 256 * 256;
+        tmp += msgBuffer[offset++] * 256;
         tmp += msgBuffer[offset++];
-        mdiFrame_s.header_s.firstAngle_sw = static_cast<qint16>(tmp);
-        tmp = msgBuffer[offset++] * 256;
+        udpMdiFrame_s.header_s.firstAngle_sdw = static_cast<qint32>(tmp);
+
+        // tmp = msgBuffer[offset++] * 256;
+        // tmp += msgBuffer[offset++];
+        // udpMdiFrame_s.header_s.deltaAngle_sw = static_cast<qint16>(tmp);
+        tmp  = msgBuffer[offset++] * 256 * 256 * 256;
+        tmp += msgBuffer[offset++] * 256 * 256;
+        tmp += msgBuffer[offset++] * 256;
         tmp += msgBuffer[offset++];
-//        mdiFrame_s.header_s.deltaAngle_sw = msgBuffer[offset++] * 256;
-//        mdiFrame_s.header_s.deltaAngle_sw += msgBuffer[offset++];
-        mdiFrame_s.header_s.deltaAngle_sw = static_cast<qint16>(tmp);
-        mdiFrame_s.header_s.timeStamp_w = msgBuffer[offset++] * 256;
-        mdiFrame_s.header_s.timeStamp_w += msgBuffer[offset++];
+        udpMdiFrame_s.header_s.deltaAngle_sdw = static_cast<qint32>(tmp);
+
+        udpMdiFrame_s.header_s.timeStamp_w = msgBuffer[offset++] * 256;
+        udpMdiFrame_s.header_s.timeStamp_w += msgBuffer[offset++];
 
         // Combine MDI
-        if(mdiFrame_s.header_s.scanSpotsNbr_w > 0)
+        if(udpMdiFrame_s.header_s.scanSpotsNbr_w > 0)
         {
             // Find the 1st packet
-            if(mdiFrame_s.header_s.subNbr_b == 1)
+            if(udpMdiFrame_s.header_s.subNbr_b == 1)
             {
                 // Save first angle for MDI frame
-                mdiFrame_s.frame_s.startAngle_sw = mdiFrame_s.header_s.firstAngle_sw;
+                // udpMdiFrame_s.frame_s.startAngle_sw = udpMdiFrame_s.header_s.firstAngle_sw;
+                udpMdiFrame_s.frame_s.startAngle_sdw = udpMdiFrame_s.header_s.firstAngle_sdw;
+
                 // Clear spots number(because not copy to Dst buffer yet)
-                mdiFrame_s.frame_s.spotNbr_w = 0;
+                udpMdiFrame_s.frame_s.spotNbr_w = 0;
                 packetIndex_b++;
             }
-            if(packetIndex_b > 0 && packetIndex_b == mdiFrame_s.header_s.subNbr_b)
+            if(packetIndex_b > 0 && packetIndex_b == udpMdiFrame_s.header_s.subNbr_b)
             {
                 // Valid start ==>
                 // Calculate start address index for Dst buffer
-                idx = mdiFrame_s.frame_s.spotNbr_w;
-                for (quint16 i = 0; i < mdiFrame_s.header_s.scanSpotsNbr_w;i++)
+                idx = udpMdiFrame_s.frame_s.spotNbr_w;
+                for (quint16 i = 0; i < udpMdiFrame_s.header_s.scanSpotsNbr_w;i++)
                 {
-                    mdiFrame_s.distance_wa[idx + i] = msgBuffer[offset]*256+msgBuffer[offset+1];
+                    udpMdiFrame_s.distance_wa[idx + i] = msgBuffer[offset]*256+msgBuffer[offset+1];
                     offset += 2;
                 }
-                if(mdiFrame_s.header_s.pktType_b == 1)
+                if(udpMdiFrame_s.header_s.pktType_b == 1)
                 {
-                    for (quint16 i = 0; i < mdiFrame_s.header_s.scanSpotsNbr_w;i++)
+                    for (quint16 i = 0; i < udpMdiFrame_s.header_s.scanSpotsNbr_w;i++)
                     {
-                        mdiFrame_s.pulsewidth_wa[idx + i] = msgBuffer[offset]*256+msgBuffer[offset+1];
+                        udpMdiFrame_s.pulsewidth_wa[idx + i] = msgBuffer[offset]*256+msgBuffer[offset+1];
                         offset += 2;
                     }
                 }
                 // Update spots number
-                mdiFrame_s.frame_s.spotNbr_w += mdiFrame_s.header_s.scanSpotsNbr_w;
+                udpMdiFrame_s.frame_s.spotNbr_w += udpMdiFrame_s.header_s.scanSpotsNbr_w;
 
                 // Update frame angle info
-                mdiFrame_s.frame_s.deltaAngle_sw = mdiFrame_s.header_s.deltaAngle_sw;
-                mdiFrame_s.frame_s.stopAngle_sw = mdiFrame_s.header_s.firstAngle_sw + \
-                        mdiFrame_s.header_s.deltaAngle_sw / 10 * (mdiFrame_s.header_s.scanSpotsNbr_w - 1);
+                // udpMdiFrame_s.frame_s.deltaAngle_sw = udpMdiFrame_s.header_s.deltaAngle_sw;
+                udpMdiFrame_s.frame_s.deltaAngle_sdw = udpMdiFrame_s.header_s.deltaAngle_sdw;
 
-                if(packetIndex_b == mdiFrame_s.header_s.totalNbr_b)
+                if(packetIndex_b == udpMdiFrame_s.header_s.totalNbr_b)
                 {
                     newRotation_b = 1;
                     packetIndex_b = 0;
@@ -173,7 +183,7 @@ void udpClient::dispatchMessage(quint8 *msgBuffer, quint32 bufSize)
             else
             {
                 // Invalid start. Abandon packet until the 1st packet received
-                qDebug()<<"Not beginning packet received!";
+                qDebug()<<"UDP: Not beginning packet received!";
             }
         }
 
@@ -187,14 +197,14 @@ void udpClient::dispatchMessage(quint8 *msgBuffer, quint32 bufSize)
         }
         else
         {
-            if(!(((mdiFrame_s.header_s.pktNbr_w - lastFrame) == 1) ||
-                    (mdiFrame_s.header_s.pktNbr_w == 0 && lastFrame == 0xFFFF)))
+            if(!(((udpMdiFrame_s.header_s.pktNbr_w - lastFrame) == 1) ||
+                    (udpMdiFrame_s.header_s.pktNbr_w == 0 && lastFrame == 0xFFFF)))
             {
                 lostFrame++;
             }
         }
         // Update last frame number
-        lastFrame = mdiFrame_s.header_s.pktNbr_w;
+        lastFrame = udpMdiFrame_s.header_s.pktNbr_w;
 
         // emit signal
         if(newRotation_b == 1)

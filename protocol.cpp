@@ -5,55 +5,174 @@ Protocol::Protocol(QObject *parent) : QObject(parent)
 
 }
 
-quint32 Protocol::decode(QByteArray &bufferInArray, quint8 *bufferDecoded)
+quint32 Protocol::decode(QByteArray &bufferInArray, quint8 *bufferDecoded, quint8 *cmdDecoded)
 {
     quint16 retsize = 0;
     quint16 checksize = 0;
     quint16 crccheck = 0;
     quint16 computecheck = 0;
+    quint8  pkttype;
+    quint16 pktsize;
+    quint16 spotsnum = 0;
+    quint8 start = 0;
+    quint8 headerSize = 0;
+    quint8 offset = 0;
 
-    while(bufferInArray.size() > PROTOCOL_BEA_HEADERSIZE)
+    if(bufferInArray.size() < 128)    // COMMAND
     {
-        if(bufferInArray.at(0) == PROTOCOL_BEA_HEADER_0 &&
-                bufferInArray.at(1) == PROTOCOL_BEA_HEADER_1 &&
-                bufferInArray.at(2) == PROTOCOL_BEA_HEADER_2 &&
-                bufferInArray.at(3) == PROTOCOL_BEA_HEADER_3 &&
-                bufferInArray.at(4) == 2 &&
-                bufferInArray.at(7) == 2)
+        if(mode_ == PROTOCOL_BEA)
         {
-            break;
+            while(bufferInArray.size() > PROTOCOL_BEA_HEADERSIZE)
+            {
+                if(bufferInArray.at(0) == 0x02 &&
+                   bufferInArray.at(1) == 0x02 &&
+                   bufferInArray.at(2) == PROTOCOL_BEA_HEADER_0 &&
+                   bufferInArray.at(3) == PROTOCOL_BEA_HEADER_1 &&
+                   bufferInArray.at(4) == PROTOCOL_BEA_HEADER_2 &&
+                   bufferInArray.at(5) == PROTOCOL_BEA_HEADER_3)
+                {
+                    start = 1;
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
+            }
         }
         else
         {
-            bufferInArray.remove(0,1);
+            while(bufferInArray.size() > PROTOCOL_LEUZE_HEADERSIZE)
+            {
+                if(bufferInArray.at(0) == 0x02 &&
+                   bufferInArray.at(1) == PROTOCOL_LEUZE_HEADER_0 &&
+                   bufferInArray.at(2) == PROTOCOL_LEUZE_HEADER_1 &&
+                   bufferInArray.at(3) == PROTOCOL_LEUZE_HEADER_2 &&
+                   bufferInArray.at(4) == PROTOCOL_LEUZE_HEADER_3 &&
+                   bufferInArray.at(5) == PROTOCOL_LEUZE_HEADER_4)
+                {
+                    start = 1;
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
+            }
+        }
+
+        if((start == 1) && (bufferInArray.size() >= 8))
+        {
+            checksize = static_cast<quint8>(bufferInArray.at(6)) * 256 + static_cast<quint8>(bufferInArray.at(7));
+            bufferInArray.remove(0, 8);// Remove header and len parts
+
+            if(bufferInArray.size() >= (checksize + 1))
+            {
+                memcpy(cmdDecoded, bufferInArray.data(), checksize);
+
+                crccheck = static_cast<quint8>(bufferInArray.at(checksize));
+                computecheck = beaComputeCHK(cmdDecoded, checksize);
+
+                if(crccheck == computecheck)
+                {
+                    retsize = checksize;
+                    packetType = AGV_MODE_CMD;
+                }
+                else
+                {
+                    qDebug("[AGV Public Command Protocol] error checksum!");
+                    qDebug()<<crccheck<<" "<<computecheck<<" "<<checksize;
+                    retsize = 0;
+                }
+            }
         }
     }
-
-    if(bufferInArray.size() >= PROTOCOL_BEA_HEADERSIZE)
+    else    // MDI
     {
-        checksize = static_cast<quint8>(bufferInArray.at(5)) + static_cast<quint8>(bufferInArray.at(6))*256;
-#if 0
-        qDebug()<<"Buffer:"<<bufferInArray.toHex().toUpper();
-        qDebug()<<"Buffer length:"<<static_cast<quint8>(bufferInArray.at(5))<<" "<<static_cast<quint8>(bufferInArray.at(6));
-#endif
-
-        if(bufferInArray.size() >= checksize)
+        if(mode_ == PROTOCOL_BEA)
         {
-            memcpy(bufferDecoded, bufferInArray.data(), checksize);
-            bufferInArray.remove(0, checksize);
-
-            crccheck = static_cast<quint16>(bufferDecoded[checksize-2]) + static_cast<quint16>(bufferDecoded[checksize-1])*256;
-            computecheck = beaComputeCRC(bufferDecoded, checksize-2);
-
-            if(crccheck == computecheck)
+            while(bufferInArray.size() > 4)
             {
-                retsize = checksize;
+                if(bufferInArray.at(0) == PROTOCOL_BEA_HEADER_0 &&
+                   bufferInArray.at(1) == PROTOCOL_BEA_HEADER_1 &&
+                   bufferInArray.at(2) == PROTOCOL_BEA_HEADER_2 &&
+                   bufferInArray.at(3) == PROTOCOL_BEA_HEADER_3)
+                {
+                    start = 1;
+                    headerSize = PROTOCOL_BEA_MDIHEADERSIZE;
+                    offset = 4;
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
             }
-            else
+        }
+        else
+        {
+            while(bufferInArray.size() > 5)
             {
-                qDebug("[BEA_Protocol] error checksum Frame ! ");
-                qDebug()<<crccheck<<" "<<computecheck<<" "<<checksize;
-                retsize = 0;
+                if(bufferInArray.at(0) == PROTOCOL_LEUZE_HEADER_0 &&
+                   bufferInArray.at(1) == PROTOCOL_LEUZE_HEADER_1 &&
+                   bufferInArray.at(2) == PROTOCOL_LEUZE_HEADER_2 &&
+                   bufferInArray.at(3) == PROTOCOL_LEUZE_HEADER_3 &&
+                   bufferInArray.at(4) == PROTOCOL_LEUZE_HEADER_4)
+                {
+                    start = 1;
+                    headerSize = PROTOCOL_LEUZE_MDIHEADERSIZE;
+                    offset = 5;
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
+            }
+        }
+
+        if((start == 1) && (bufferInArray.size() > headerSize))
+        {
+            // Packet type
+            pkttype = static_cast<quint8>(bufferInArray.at(offset));
+            // Packet size
+            pktsize = static_cast<quint8>(bufferInArray.at(offset + 1)) * 256 + static_cast<quint8>(bufferInArray.at(offset + 2));
+            // Scan points number in this frame
+            spotsnum = static_cast<quint8>(bufferInArray.at(offset + 15)) * 256 + static_cast<quint8>(bufferInArray.at(offset + 16));
+            switch (pkttype)
+            {
+            case 0: // Distance only
+                checksize = headerSize + spotsnum * 2;
+                break;
+            case 1: // Distance + pulsewidth
+                checksize = headerSize + spotsnum * 4;
+                break;
+            default: // >1?
+                checksize = headerSize + spotsnum * 4;
+                break;
+            }
+            // Check if the frame size is correct
+            if(bufferInArray.size() >= (checksize + 2)) // 2 is size of CRC
+            {
+                // Copy data to outbuffer starting from packet type
+                memcpy(bufferDecoded, bufferInArray.data(), checksize);
+
+                // CRC check
+                crccheck = static_cast<quint8>(bufferInArray.at(checksize)) * 256 + static_cast<quint8>(bufferInArray.at(checksize + 1));
+                computecheck = beaComputeCRC(bufferDecoded, checksize);
+                if(crccheck == computecheck)
+                {
+                    // Remove the SYNC part
+                    checksize -= offset;
+                    memmove(bufferDecoded, &bufferDecoded[offset], checksize);
+                    retsize = checksize; // Size without SYNC
+                }
+                else
+                {
+                    qDebug("[1 BEA Public Protocol] error crc in MDI frame!");
+                    retsize = 0;
+                }
+                packetType = AGV_MODE_MDI;
             }
         }
     }
@@ -71,35 +190,59 @@ quint32 Protocol::decode(QByteArray &bufferInArray, quint8 bufferDecoded[], quin
     quint8  pkttype;
     quint16 pktsize;
     quint16 spotsnum = 0;
+    quint8 headerSize = 0;
+    quint8 offset = 0;
 
     if(agvMode == AGV_MODE_CMD)    // Command
     {
-        while(bufferInArray.size() > 6)
+        if(mode_ == PROTOCOL_BEA)
         {
-            if(bufferInArray.at(0) == 0x02 &&
-                    bufferInArray.at(1) == 0x02 &&
-                    bufferInArray.at(2) == PROTOCOL_BEA_HEADER_0 &&
-                    bufferInArray.at(3) == PROTOCOL_BEA_HEADER_1 &&
-                    bufferInArray.at(4) == PROTOCOL_BEA_HEADER_2 &&
-                    bufferInArray.at(5) == PROTOCOL_BEA_HEADER_3)
+            while(bufferInArray.size() > PROTOCOL_BEA_HEADERSIZE)
             {
-                break;
+                if(bufferInArray.at(0) == 0x02 &&
+                   bufferInArray.at(1) == 0x02 &&
+                   bufferInArray.at(2) == PROTOCOL_BEA_HEADER_0 &&
+                   bufferInArray.at(3) == PROTOCOL_BEA_HEADER_1 &&
+                   bufferInArray.at(4) == PROTOCOL_BEA_HEADER_2 &&
+                   bufferInArray.at(5) == PROTOCOL_BEA_HEADER_3)
+                {
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
             }
-            else
+        }
+        else
+        {
+            while(bufferInArray.size() > PROTOCOL_LEUZE_HEADERSIZE)
             {
-                bufferInArray.remove(0,1);
+                if(bufferInArray.at(0) == 0x02 &&
+                   bufferInArray.at(1) == PROTOCOL_LEUZE_HEADER_0 &&
+                   bufferInArray.at(2) == PROTOCOL_LEUZE_HEADER_1 &&
+                   bufferInArray.at(3) == PROTOCOL_LEUZE_HEADER_2 &&
+                   bufferInArray.at(4) == PROTOCOL_LEUZE_HEADER_3 &&
+                   bufferInArray.at(5) == PROTOCOL_LEUZE_HEADER_4)
+                {
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
             }
         }
 
         if(bufferInArray.size() >= 8)
         {
-            checksize = static_cast<quint8>(bufferInArray.at(6))*256 + static_cast<quint8>(bufferInArray.at(7));
+            checksize = static_cast<quint8>(bufferInArray.at(6)) * 256 + static_cast<quint8>(bufferInArray.at(7));
             bufferInArray.remove(0, 8);// Remove header and len parts
 
             if(bufferInArray.size() >= (checksize + 1))
             {
                 memcpy(bufferDecoded, bufferInArray.data(), checksize);
-    //            bufferInArray.remove(0, checksize);
+
                 crccheck = static_cast<quint8>(bufferInArray.at(checksize));
                 computecheck = beaComputeCHK(bufferDecoded, checksize);
 
@@ -118,39 +261,65 @@ quint32 Protocol::decode(QByteArray &bufferInArray, quint8 bufferDecoded[], quin
     }
     else if(agvMode == AGV_MODE_MDI)   // MDI
     {
-        while(bufferInArray.size() > 4)
+        if(mode_ == PROTOCOL_BEA)
         {
-            if(bufferInArray.at(0) == PROTOCOL_BEA_HEADER_0 &&
-                    bufferInArray.at(1) == PROTOCOL_BEA_HEADER_1 &&
-                    bufferInArray.at(2) == PROTOCOL_BEA_HEADER_2 &&
-                    bufferInArray.at(3) == PROTOCOL_BEA_HEADER_3)
+            while(bufferInArray.size() > 4)
             {
-                break;
+                if(bufferInArray.at(0) == PROTOCOL_BEA_HEADER_0 &&
+                   bufferInArray.at(1) == PROTOCOL_BEA_HEADER_1 &&
+                   bufferInArray.at(2) == PROTOCOL_BEA_HEADER_2 &&
+                   bufferInArray.at(3) == PROTOCOL_BEA_HEADER_3)
+                {
+                    headerSize = PROTOCOL_BEA_MDIHEADERSIZE;
+                    offset = 4;
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
             }
-            else
+        }
+        else
+        {
+            while(bufferInArray.size() > 5)
             {
-                bufferInArray.remove(0,1);
+                if(bufferInArray.at(0) == PROTOCOL_LEUZE_HEADER_0 &&
+                   bufferInArray.at(1) == PROTOCOL_LEUZE_HEADER_1 &&
+                   bufferInArray.at(2) == PROTOCOL_LEUZE_HEADER_2 &&
+                   bufferInArray.at(3) == PROTOCOL_LEUZE_HEADER_3 &&
+                   bufferInArray.at(4) == PROTOCOL_LEUZE_HEADER_4)
+                {
+                    headerSize = PROTOCOL_LEUZE_MDIHEADERSIZE;
+                    offset = 5;
+                    break;
+                }
+                else
+                {
+                    bufferInArray.remove(0,1);
+                }
             }
         }
 
-        if(bufferInArray.size() >= 27)
+
+        if(bufferInArray.size() >= headerSize)
         {
             // Packet type
-            pkttype = static_cast<quint8>(bufferInArray.at(4));
+            pkttype = static_cast<quint8>(bufferInArray.at(offset));
             // Packet size
-            pktsize = static_cast<quint16>(bufferInArray.at(5))*256 + static_cast<quint16>(bufferInArray.at(6));
+            pktsize = static_cast<quint8>(bufferInArray.at(offset + 1)) * 256 + static_cast<quint8>(bufferInArray.at(offset + 2));
             // Scan points number in this frame
-            spotsnum = static_cast<quint8>(bufferInArray.at(19))*256 + static_cast<quint8>(bufferInArray.at(20));
+            spotsnum = static_cast<quint8>(bufferInArray.at(offset + 15)) * 256 + static_cast<quint8>(bufferInArray.at(offset + 16));
             switch (pkttype)
             {
             case 0: // Distance only
-                checksize = 27 + spotsnum * 2;
+                checksize = headerSize + spotsnum * 2;
                 break;
             case 1: // Distance + pulsewidth
-                checksize = 27 + spotsnum * 4;
+                checksize = headerSize + spotsnum * 4;
                 break;
             default: // >1?
-                checksize = 27 + spotsnum * 4;
+                checksize = headerSize + spotsnum * 4;
                 break;
             }
             // Check if the frame size is correct
@@ -160,19 +329,18 @@ quint32 Protocol::decode(QByteArray &bufferInArray, quint8 bufferDecoded[], quin
                 memcpy(bufferDecoded, bufferInArray.data(), checksize);
 
                 // CRC check
-                crccheck = static_cast<quint8>(bufferInArray.at(checksize))*256 + static_cast<quint8>(bufferInArray.at(checksize+1));
+                crccheck = static_cast<quint8>(bufferInArray.at(checksize)) * 256 + static_cast<quint8>(bufferInArray.at(checksize + 1));
                 computecheck = beaComputeCRC(bufferDecoded, checksize);
                 if(crccheck == computecheck)
                 {
                     // Remove the SYNC part
-                    checksize -= 4;
-                    memmove(bufferDecoded, &bufferDecoded[4], checksize);
+                    checksize -= offset;
+                    memmove(bufferDecoded, &bufferDecoded[offset], checksize);
                     retsize = checksize; // Size without SYNC
                 }
                 else
                 {
-                    qDebug("[BEA Public Protocol] error crc in MDI frame!");
-                    qDebug()<<crccheck<<" "<<computecheck<<" "<<checksize;
+                    qDebug("[2 BEA Public Protocol] error crc in MDI frame!");
                     retsize = 0;
                 }
             }
@@ -206,14 +374,14 @@ quint16 Protocol::beaComputeCRC(quint8 *msgBuffer, quint16 msgSize)
     return crc;
 }
 
-quint16 Protocol::beaComputeCHK(quint8 *msgBuffer, quint16 msgSize)
+quint8 Protocol::beaComputeCHK(quint8 *msgBuffer, quint16 msgSize)
 {
-    quint16 chk=0;
+    quint8 chk=0;
     quint16 i;
 
     for (i=0;i<msgSize;i++)
     {
-        chk ^= static_cast<quint16>(msgBuffer[i]);
+        chk ^= msgBuffer[i];
     }
 
     return chk;
@@ -231,7 +399,7 @@ quint16 Protocol::encode(quint8 buffer[], quint8 bufferEncoded[], quint16 bufSiz
     bufferEncoded[1] = static_cast<quint8>(PROTOCOL_BEA_HEADER_1);
     bufferEncoded[2] = static_cast<quint8>(PROTOCOL_BEA_HEADER_2);
     bufferEncoded[3] = static_cast<quint8>(PROTOCOL_BEA_HEADER_3);
-    bufferEncoded[4] = static_cast<quint8>(PROTOCOL_version);
+    bufferEncoded[4] = static_cast<quint8>(PROTOCOL_BEA_VERSION);
 
     /* buffer5 and 6 is the real size. 7 and 8 acturally is always 0 */
     bufferEncoded[5] = lobyte(retsize + PROTOCOL_BEA_FOOTERSIZE);
@@ -265,13 +433,26 @@ quint16 Protocol::encode(quint8 buffer[], quint8 bufferEncoded[], quint16 bufSiz
 
     if(agvMode == AGV_MODE_CMD)
     {
-        offset = 0;
-        bufferEncoded[offset++] = 0x02;
-        bufferEncoded[offset++] = 0x02;
-        bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_0);
-        bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_1);
-        bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_2);
-        bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_3);
+        if(mode_ == PROTOCOL_BEA)
+        {
+            offset = 0;
+            bufferEncoded[offset++] = 0x02;
+            bufferEncoded[offset++] = 0x02;
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_0);
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_1);
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_2);
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_BEA_HEADER_3);
+        }
+        else
+        {
+            offset = 0;
+            bufferEncoded[offset++] = 0x02;
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_LEUZE_HEADER_0);
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_LEUZE_HEADER_1);
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_LEUZE_HEADER_2);
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_LEUZE_HEADER_3);
+            bufferEncoded[offset++] = static_cast<quint8>(PROTOCOL_LEUZE_HEADER_4);
+        }
         bufferEncoded[offset++] = hibyte(bufSize);
         bufferEncoded[offset++] = lobyte(bufSize);
 
@@ -338,4 +519,9 @@ quint8 Protocol::lobyte(quint16 w)
 quint8 Protocol::hibyte(quint16 w)
 {
     return static_cast<quint8>((w & 0xFF00u) >> 8);
+}
+
+void Protocol::setMode(ProtocolType mode)
+{
+    mode_ = mode;
 }

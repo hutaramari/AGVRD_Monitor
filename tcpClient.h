@@ -8,47 +8,53 @@
 #include <QMutex>
 #include <QByteArray>
 #include <QTimer>
+#include <QtNetwork>
+#include "protocol.h"
 
-class TcpClient : public QObject
+class TcpClient : public QThread
 {
     Q_OBJECT
 
 public:
-    explicit TcpClient();
+    explicit TcpClient(QString strAddressIP, quint16 port, QObject *parent = nullptr);
     ~TcpClient();
-
-    void startConnect(const QString& strAddressIP, quint16 iPort);
-
+    void setProtocol(Protocol *p);
+    void closeClient();
     void write(quint8 *msgBuffer, quint16 size);
-    int read(QByteArray &bufferIn);
-    QByteArray read(void);
-    void close(void);
+    qint32 read(QByteArray &bufferIn);
+    void setConnStart(void);
 
-    QTcpSocket *m_TcpSocket;
+    MDI_Frame_t tcpMdiFrame_s;
+    quint64 totalFrame;
+    quint64 lostFrame;
+    QTcpSocket *tcpSocket;
+    bool tcpStartLoop;
+    quint8 tcpCmdFrame_ba[100];
+    quint32 tcpCmdLength_dw;
 
 signals:
-    void signalReadData();
+    void sigReadMdiData();
+    void sigReadCmdData();
 
-public slots:
-    void onConnect();
-    void onDisconnect();
-    void onErrorString(QAbstractSocket::SocketError errorString);
-
-    void onRecvData();
-    //void onSendData();
+protected:
+    void run();
 
 private:
-    QHostAddress m_hostaddressIP;
-    QString m_strAddressIP;
-    quint16 m_iPort;
-    bool b_isConnectState;
-    bool b_hasDataSend;
-    bool b_close;
-
+    QString ip_str;
+    quint16 port_w;
     QTimer *m_timerConnect;
+    bool isConnected;
 
-    QByteArray m_readDataBuf;
-    QByteArray m_sendDatabuf;
+    QByteArray datagram;
+    Protocol *protocol;
+    bool isFirstTime_b;
+    quint8 tcpMsgBuffer[10*1024];
+    quint8 tcpCmdBuffer[128];
+    quint8 curFrameTotalNbr_b;
+
+    void dispatchMessage(quint8 *msgBuffer, quint32 bufSize, quint8 myType);
+    void onConnected(void);
+    void onDisconnected(void);
 };
 
 

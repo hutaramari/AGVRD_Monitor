@@ -10,8 +10,6 @@ MainWindow::MainWindow(QWidget *parent) :
     deviceDialogUI = new Ui::DeviceDialog;
     deviceDialog = new QDialog(this);
     deviceDialogUI->setupUi(deviceDialog);
-    deviceDialogUI->typeComboBox->addItem("Serial Port");
-    deviceDialogUI->typeComboBox->addItem("Ethernet Port");
     connect(deviceDialogUI->typeComboBox, &QComboBox::currentTextChanged, this, &MainWindow::getChangedTextSlots);
     connect(deviceDialogUI->portComboBox, &QComboBox::currentTextChanged, this, &MainWindow::ipAddressChangedSlots);
     connect(deviceDialogUI->speedComboBox, &QComboBox::currentTextChanged, this, &MainWindow::ipPortChangedSlost);
@@ -109,20 +107,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
     lostFrame = 0;
     totalFrame = 0;
-    lastFrame = 0;
 
     record = false;
 
     file = new QFile();
 
     receiveTimeOutTimer = new QTimer();
-    receiveTimeOutTimer->setInterval(200);
+    receiveTimeOutTimer->setInterval(500);
 
     QObject::connect(receiveTimeOutTimer, &QTimer::timeout, this, &MainWindow::receiveTimeOutSlots, Qt::DirectConnection);
     started = false;
 
     periodTimer = new QTimer();
-    periodTimer->setInterval(5000);
+    periodTimer->setInterval(1000);
     connect(periodTimer, &QTimer::timeout, this, &MainWindow::periodTimerSlots, Qt::DirectConnection);
     connect(this, &MainWindow::updateTemperature, deviceHost, &DeviceHost::updateTemperature, Qt::DirectConnection);
     connect(deviceHost, &DeviceHost::temperatureSignal, this, &MainWindow::updateTemperatureSlot);
@@ -158,11 +155,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_actionOpen_triggered()
 {
-    qDebug()<<"Open Device action triggeded.";
+    //qDebug()<<"Open Device action triggeded.";
 
     deviceDialogUI->typeComboBox->clear();
     deviceDialogUI->typeComboBox->addItem("Ethernet Port");
-    deviceDialogUI->typeComboBox->addItem("Serial Port");
 
     // For Ethernet communication setting
     deviceDialogUI->label_2->setText("IP Addr:");
@@ -179,70 +175,41 @@ void MainWindow::on_actionOpen_triggered()
 
     if(deviceDialog->result())
     {
-        serialPortName = deviceDialogUI->portComboBox->itemText(deviceDialogUI->portComboBox->currentIndex());
-        serialPortSpeed = deviceDialogUI->speedComboBox->itemText(deviceDialogUI->speedComboBox->currentIndex());
+        netIPAddress = deviceDialogUI->portComboBox->itemText(deviceDialogUI->portComboBox->currentIndex());
+        netPort = deviceDialogUI->speedComboBox->itemText(deviceDialogUI->speedComboBox->currentIndex());
 
-        if(serialPortName != "NULL")
+        /* Create udp socket and connect to host */
+        if(netDevice->setClient(netIPAddress, netPort))
         {
-            /* Initial serial port device */
-            if(serialPortName.contains("COM") | serialPortName.contains("tty"))
+            /* Connect signal and slot */
+            //if(ui->actionLeuze_mode->)
+            //protocol->setMode(protocolMode_b);
+            if(ui->actionLeuze_mode->isChecked())
             {
-                qDebug()<<"Set up new seiral device";
-                qDebug()<<"serialPortName:"<<serialPortName<<", serialPortSpeed:"<<serialPortSpeed;
-                if(serialDevice->setDevice(serialPortName, serialPortSpeed))
-                {
-                    qDebug()<<"MainWindow: setSerialHost";
-                    deviceHost->setSerialHost(serialDevice,protocol);
-                    /*connect signal and slots*/
-                    ui->actionClose->setDisabled(false);
-                    ui->actionOpen->setDisabled(true);
-
-                    ui->actionStart->setDisabled(false);
-                    ui->actionWms->setDisabled(false);
-
-                    statusLabel.setText(serialPortName);
-                    ui->statusBar->addPermanentWidget(&statusLabel);
-
-                }
-                else
-                {
-                    QMessageBox::warning(this,"Error","Device Not Available",QMessageBox::Ok);
-                }
+                protocol->setMode(Protocol::PROTOCOL_LEUZE);
             }
-            /* Initial Ethernet device */
-            else
-            {
-                qDebug()<<"Set up ethernet device.";
-                qDebug()<<"IP: "<<serialPortName;
-                qDebug()<<"PORT: "<<serialPortSpeed;
-
-                netIPAddress = deviceDialogUI->portComboBox->itemText(deviceDialogUI->portComboBox->currentIndex());
-                netPort = deviceDialogUI->speedComboBox->itemText(deviceDialogUI->speedComboBox->currentIndex());
-
-                /* Create udp socket and connect to host */
-                if(netDevice->setClient(netIPAddress, netPort))
-                {
-                    /* Connect signal and slot */
-                    deviceHost->setNetHost(netDevice, protocol);
-                    connect(deviceHost, &DeviceHost::newFrame, this, &MainWindow::updateUI);
-                    connect(deviceHost, &DeviceHost::newLog, this, &MainWindow::updateLog);
-
-                    ui->actionOpen->setEnabled(false);
-                    ui->actionClose->setEnabled(true);
-                    ui->actionStart->setEnabled(true);
-                    ui->actionStop->setEnabled(true);
-                    ui->actionWms->setEnabled(true);
-
-                    statusLabel.setText(netIPAddress + ":" + netPort);
-                    ui->statusBar->addPermanentWidget(&statusLabel, 10);
-
-                    periodTimer->start();
-                }
-                else
-                {
-                    QMessageBox::warning(this, "Error", "Server Not Available", QMessageBox::Ok);
-                }
+            else {
+                protocol->setMode(Protocol::PROTOCOL_BEA);
             }
+            deviceHost->setNetHost(netDevice, protocol);
+            connect(deviceHost, &DeviceHost::newMdiFrame, this, &MainWindow::updateUI);
+            connect(deviceHost, &DeviceHost::newLog, this, &MainWindow::updateLog);
+
+            ui->actionOpen->setEnabled(false);
+            ui->actionClose->setEnabled(true);
+            ui->actionStart->setEnabled(true);
+            ui->actionStop->setEnabled(true);
+            ui->actionWms->setEnabled(true);
+            ui->actionLeuze_mode->setEnabled(false);
+
+            statusLabel.setText(netIPAddress + ":" + netPort);
+            ui->statusBar->addPermanentWidget(&statusLabel, 10);
+
+            periodTimer->start();
+        }
+        else
+        {
+            QMessageBox::warning(this, "Error", "Server Not Available", QMessageBox::Ok);
         }
     }
     else
@@ -289,7 +256,9 @@ void MainWindow::updateUI()
             radius = deviceHost->MDIFrame_s.distance_wa[i] / 1000.0; // Should be 1000.0(DEBUG: because the simulator output data < 200)
             // 1) normal = 1000.0
             // 2) output data < 200, then 10.0
-            angle = (deviceHost->MDIFrame_s.frame_s.startAngle_sw + deviceHost->MDIFrame_s.frame_s.deltaAngle_sw * i / 10) * 1.0 / 100.0;
+            // angle = (deviceHost->MDIFrame_s.frame_s.startAngle_sw + deviceHost->MDIFrame_s.frame_s.deltaAngle_sw * i / 10) * 1.0 / 100.0;
+            angle = (deviceHost->MDIFrame_s.frame_s.startAngle_sdw + deviceHost->MDIFrame_s.frame_s.deltaAngle_sdw * i) * 1.0 / 1000.0;
+
             pointx = qCos(qDegreesToRadians(angle)) * radius;
             pointy = qSin(qDegreesToRadians(angle)) * radius;
             if(reverse_b)
@@ -321,7 +290,7 @@ void MainWindow::updateLog()
 
 void MainWindow::on_actionClose_triggered()
 {
-    disconnect(deviceHost, &DeviceHost::newFrame, this, &MainWindow::updateUI);
+    disconnect(deviceHost, &DeviceHost::newMdiFrame, this, &MainWindow::updateUI);
 
     disconnect(deviceHost, &DeviceHost::newLog, this, &MainWindow::updateLog);
 
@@ -340,6 +309,7 @@ void MainWindow::on_actionClose_triggered()
     ui->actionStart->setEnabled(false);
     ui->actionStop->setEnabled(false);
     ui->actionWms->setEnabled(false);
+    ui->actionLeuze_mode->setEnabled(true);
 
     ui->totalFrameLabel->setText("0");
     ui->lostFrameLabel->setText("0");

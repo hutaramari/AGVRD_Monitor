@@ -107,15 +107,13 @@ public:
     quint64 totalFrame;
     quint64 lostFrame;
 
-    quint16 lastFrame;
-
     MDI_Frame_t MDIFrame_s;
     qint16  temperature;
 
     quint16 wmsData[WMS_DATA_SIZE];
 
 signals:
-    void newFrame();
+    void newMdiFrame();
     void newLog();
     void newParameter();
     void newWmsSignal(quint16 *buf_, quint16 size_);
@@ -142,17 +140,16 @@ private:
     void readSerialPortSlot(void);
 
     //ethernet port
-    void readNetDeviceSlot(void);
-    void readNetDeviceMdiSlot(void);
+    void readTcpMdiSlot(void);
+    void readUdpMdiSlot(void);
+    void readTcpCmdSlot(void);
 
-    void dispatchMessage(quint8 msgBuffer[]);
-    void dispatchMessage(quint8 msgBuffer[], quint32 bufSize, quint8 agvMode);
     void readParameter(void);
     void sendCommand(QString cmd);
 
     QByteArray _bufferInArray;
     quint32 _msgSize;
-    quint8 _msgBuffer[READBUFSIZE];
+    quint8 _msgBuffer[100];
 
     quint8 _bufferOut[READBUFSIZE];
     quint8 _bufferEncoded[READBUFSIZE];
