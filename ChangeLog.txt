@@ -1,6 +1,26 @@
 ﻿AGV RD Monitor
 =========
 
+P4 (15 May 2024)
+-----------------
+* add customization option
+
+
+P3 (6 May 2023)
+-----------------
+
+Features:
+*** add TCP for receiving MDI
+*** change MDI foramt (v2)
+
+
+P2 (18 Jan 2023)
+-----------------
+
+Features:
+*** support reverse the viewer
+
+
 P1 (6 Jan 2021)
 -----------------
 
